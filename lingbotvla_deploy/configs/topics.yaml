@@ -1,0 +1,144 @@
+# configs/topics.yaml 作为唯一配置来源
+# camera_sources.py 自动读取 python_cameras
+# robot_topics.py 自动读取 ros_topics
+
+
+
+cameras:
+  camera_top:
+    source: "python"              # 可选: "python" / "ros"
+    output_name: "camera_top"     # 发给 LingBot-VLA 的图像名字
+    internal_name: "head_rgb"     # Python 内部相机名
+
+    python:
+      type: "opencv"
+      device_index: 14
+      api: "CAP_V4L2"
+      fourcc: "MJPG"
+
+      # 请求分辨率。实际输出由相机驱动决定。
+      width: 640
+      height: 480
+      fps: 15
+
+      # 不裁剪，只缩放。
+      # 你实测原始输出是 1344x376，所以 resize 到 640x180。
+      resize_to: [640, 180]
+
+    ros:
+      topic: "/zed/zed_node/rgb/color/rect/image/compressed"
+      msg_type: "CompressedImage"
+      resize_to: [640, 180]
+
+  camera_wrist_left:
+    source: "python"
+    output_name: "camera_wrist_left"
+    internal_name: "left_wrist_rgb"
+
+    python:
+      type: "realsense"
+      serial_number: "230322270950"
+      width: 640
+      height: 480
+      fps: 15
+
+    ros:
+      topic: "/camera/camera_wrist_left/color/image_rect_raw/compressed"
+      msg_type: "CompressedImage"
+      resize_to: [640, 480]
+
+  camera_wrist_right:
+    source: "python"
+    output_name: "camera_wrist_right"
+    internal_name: "right_wrist_rgb"
+
+    python:
+      type: "realsense"
+      serial_number: "230322271216"
+      width: 640
+      height: 480
+      fps: 15
+
+    ros:
+      topic: "/camera/camera_wrist_right/color/image_rect_raw/compressed"
+      msg_type: "CompressedImage"
+      resize_to: [640, 480]
+
+
+ros_topics:
+  states:
+    joint_states: "/joint_states"
+
+    left_arm: "/hdas/feedback_arm_left"
+    right_arm: "/hdas/feedback_arm_right"
+    torso: "/hdas/feedback_torso"
+
+    left_gripper: "/hdas/feedback_gripper_left"
+    right_gripper: "/hdas/feedback_gripper_right"
+
+    left_ee_pose: "/motion_control/pose_ee_arm_left"
+    right_ee_pose: "/motion_control/pose_ee_arm_right"
+
+  tf:
+    tf: "/tf"
+    tf_static: "/tf_static"
+
+  commands:
+    left_arm: "/motion_target/target_joint_state_arm_left"
+    right_arm: "/motion_target/target_joint_state_arm_right"
+    torso: "/motion_target/target_joint_state_torso"
+
+    left_ee_pose: "/motion_target/target_pose_arm_left"
+    right_ee_pose: "/motion_target/target_pose_arm_right"
+
+    left_gripper: "/motion_target/target_position_gripper_left"
+    right_gripper: "/motion_target/target_position_gripper_right"
+
+
+sync:
+  # 推荐第一版用 receive_time。
+  # Python 相机时间和 ROS 接收时间都用本机 time.time()，更容易对齐。
+  # 如果以后所有相机都走 ROS，并且确认 header.stamp 可靠，再改成 header_stamp。
+  time_source: "receive_time"     # 可选: "receive_time" / "header_stamp"
+
+  # 用哪个相机作为 observation 的参考时间。
+  reference_camera: "camera_top"
+
+  # 状态和图像允许的最大时间差。
+  max_state_time_diff_s: 0.15
+
+
+robot:
+  hardware: "R1_PRO"
+  state_dim: 16
+  action_dim: 16
+  dof_of_arm: 7
+
+  # LingBot-VLA 推荐第一版：
+  # arm 输出是关节增量
+  # gripper 输出是绝对夹爪目标值
+  action_type: "arm_delta_gripper_absolute"
+
+  control_frequency: 15.0
+  action_steps: 5
+
+
+safety:
+  enable: true
+
+  # 关节每个控制周期最多变化 0.02 rad
+  max_joint_delta_per_step: 0.02
+
+  # 夹爪量程 0-100，每个控制周期最多变化 5
+  max_gripper_delta_per_step: 5.0
+
+  # 低通滤波，越小越平滑但越慢
+  low_pass_alpha: 0.3
+
+  # 夹爪范围
+  gripper_lower: 0.0
+  gripper_upper: 100.0
+
+  # 小于 0.5 的夹爪变化忽略，防止目标附近抖动
+  gripper_deadband: 0.5
+  gripper_min_interval_s: 0.0

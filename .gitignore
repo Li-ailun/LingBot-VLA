@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Environments
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Logs / cache
+logs/
+*.log
+.cache/
+.cache*/
+.DS_Store
+
+# ROS / data
+bags/
+*.db3
+*.mcap
+*.bag
+*.bag.active
+
+# Models / checkpoints / large files
+models/
+checkpoints/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.onnx
+
+# HuggingFace cache
+**/.cache/huggingface/
+
+# Official cloned repo, do not vendor it
+lingbot-vla/
+
+# Temporary backup files
+*.bak
+*.tmp

@@ -1,0 +1,22 @@
+本地机器人端
+  1. ROS / Python 相机 / 状态反馈
+  2. 组成本地 observation
+  3. 转成官网 LingBot-VLA 需要的 observation 格式
+  4. 用 msgpack_numpy 通过 WebSocket 发给服务器
+
+服务器端
+  5. 官方 WebsocketPolicyServer 接收数据
+  6. 官方 LingbotVLAServer / LingBot-VLA 模型推理
+  7. 输出 action chunk
+  8. 用 msgpack_numpy 通过 WebSocket 发回本地
+
+本地机器人端
+  9. 接收 action chunk
+  10. 转成我们本地 action 格式
+  11. 关节增量 + 当前状态 = 目标关节
+  12. 夹爪绝对值 = 目标夹爪
+  13. 限幅、平滑、安全检查
+  14. ROS2 发布控制指令
+
+
+conda activate lingbotvla
