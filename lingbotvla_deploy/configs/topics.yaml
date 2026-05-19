@@ -2,11 +2,12 @@
 # camera_sources.py 自动读取 python_cameras
 # robot_topics.py 自动读取 ros_topics
 
-
+# receive_time = 本地运行 ros2_node.py / ros2_bridge.py 的这台机器收到 ROS 消息时的时间
+# header.stamp = 这个 ROS 消息发布者写进 msg.header.stamp 的时间（如果机器人发出的所有话题都用一个时间戳，则该模式状态对齐最准确）
 
 cameras:
   camera_top:
-    source: "python"              # 可选: "python" / "ros"
+    source: "ros"              # 可选: "python" / "ros"
     output_name: "camera_top"     # 发给 LingBot-VLA 的图像名字
     internal_name: "head_rgb"     # Python 内部相机名
 
@@ -26,12 +27,12 @@ cameras:
       resize_to: [640, 180]
 
     ros:
-      topic: "/zed/zed_node/rgb/color/rect/image/compressed"
+      topic: "/hdas/camera_head/left_raw/image_raw_color/compressed"
       msg_type: "CompressedImage"
       resize_to: [640, 180]
 
   camera_wrist_left:
-    source: "python"
+    source: "ros"
     output_name: "camera_wrist_left"
     internal_name: "left_wrist_rgb"
 
@@ -48,7 +49,7 @@ cameras:
       resize_to: [640, 480]
 
   camera_wrist_right:
-    source: "python"
+    source: "ros"
     output_name: "camera_wrist_right"
     internal_name: "right_wrist_rgb"
 
@@ -99,6 +100,9 @@ sync:
   # 推荐第一版用 receive_time。
   # Python 相机时间和 ROS 接收时间都用本机 time.time()，更容易对齐。
   # 如果以后所有相机都走 ROS，并且确认 header.stamp 可靠，再改成 header_stamp。
+
+  # receive_time = 本地运行 ros2_node.py / ros2_bridge.py 的这台机器收到 ROS 消息时的时间
+  # header.stamp = 这个 ROS 消息发布者写进 msg.header.stamp 的时间
   time_source: "receive_time"     # 可选: "receive_time" / "header_stamp"
 
   # 用哪个相机作为 observation 的参考时间。

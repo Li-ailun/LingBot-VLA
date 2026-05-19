@@ -45,6 +45,7 @@ try:
     from .client_ws import PolicyClient
     from .official_policy_client import OfficialPolicyClient
     from .action_executor import ActionExecutor
+    from .monitor_server import MonitorServer
 except ImportError:
     from camera_sources import CameraHub
     from ros2_bridge import Ros2Bridge
@@ -52,6 +53,7 @@ except ImportError:
     from client_ws import PolicyClient
     from official_policy_client import OfficialPolicyClient
     from action_executor import ActionExecutor
+    from monitor_server import MonitorServer
 
 
 logger = logging.getLogger("LingBotVLALocalNode")
@@ -395,6 +397,11 @@ def parse_args():
     parser.add_argument("--print-every", type=int, default=1)
     parser.add_argument("--stop-on-error", action="store_true")
 
+    parser.add_argument("--monitor", action="store_true")
+    parser.add_argument("--monitor-host", type=str, default="127.0.0.1")
+    parser.add_argument("--monitor-port", type=int, default=9000)
+    parser.add_argument("--monitor-hz", type=float, default=5.0)
+
     return parser.parse_args()
 
 
@@ -434,6 +441,7 @@ def main():
     builder: Optional[ObservationBuilder] = None
     client: Optional[PolicyClient] = None
     executor: Optional[ActionExecutor] = None
+    monitor: Optional[MonitorServer] = None
 
     try:
         if camera_mode == "python":
@@ -513,6 +521,21 @@ def main():
             ros_bridge=ros_bridge,
         )
 
+        if args.monitor:
+            monitor = MonitorServer(
+                host=args.monitor_host,
+                port=args.monitor_port,
+                broadcast_hz=args.monitor_hz,
+                jpeg_quality=60,
+                max_preview_width=640,
+            )
+            monitor.start_in_thread()
+            logger.info(
+                "Monitor server started at ws://%s:%d/monitor",
+                args.monitor_host,
+                args.monitor_port,
+            )
+
         logger.info("Local node is running.")
 
         if args.send:
@@ -537,6 +560,33 @@ def main():
                 print(f"valid observation step: {step}")
                 print(summarize_obs(obs))
 
+            if monitor is not None:
+                for cmd in monitor.get_all_commands():
+                    cmd_type = cmd.get("type", "")
+
+                    if cmd_type == "set_instruction":
+                        new_instruction = cmd.get("instruction", "")
+                        builder.set_instruction(new_instruction)
+                        logger.info("Instruction updated from monitor: %s", new_instruction)
+
+                    elif cmd_type in ("stop", "emergency_stop"):
+                        logger.warning("Monitor command received: %s. Disable execute.", cmd_type)
+                        args.execute = False
+
+                    elif cmd_type == "start_dry_run":
+                        logger.info("Monitor command received: start_dry_run")
+
+                if not args.send:
+                    monitor.update_from_observation(
+                        obs=obs,
+                        actions=None,
+                        result=None,
+                        camera_mode=camera_mode,
+                        protocol=args.protocol,
+                        policy_connected=False,
+                        extra={"step": step},
+                    )
+
             if not args.send:
                 if args.max_steps > 0 and step >= args.max_steps:
                     break
@@ -556,6 +606,17 @@ def main():
                     print(summarize_action_result(result))
 
                 actions = result["actions"]
+
+                if monitor is not None:
+                    monitor.update_from_observation(
+                        obs=obs,
+                        actions=actions,
+                        result=result,
+                        camera_mode=camera_mode,
+                        protocol=args.protocol,
+                        policy_connected=True,
+                        extra={"step": step},
+                    )
 
                 returned_action_type = result.get("action_type", None)
                 if returned_action_type is not None:
@@ -601,6 +662,9 @@ def main():
         logger.info("KeyboardInterrupt received. Stopping local node.")
 
     finally:
+        if monitor is not None:
+            monitor.stop()
+
         if camera_hub is not None:
             camera_hub.stop()
 

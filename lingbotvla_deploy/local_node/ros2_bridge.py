@@ -235,13 +235,17 @@ class Ros2Bridge:
         self.subscribers = {}
         self.publishers = {}
 
-        self.callback_group = ReentrantCallbackGroup()
-        self.executor = MultiThreadedExecutor(num_threads=num_threads)
-
+        # IMPORTANT:
+        # rclpy must be initialized before creating Executor / GuardCondition.
+        # Otherwise Humble may raise:
+        #   AttributeError: __enter__
         if not rclpy.ok():
-            rclpy.init()
+            rclpy.init(args=None)
 
         self.node = rclpy.create_node(node_name)
+
+        self.callback_group = ReentrantCallbackGroup()
+        self.executor = MultiThreadedExecutor(num_threads=num_threads)
 
         self._init_subscribers()
         self._init_publishers()

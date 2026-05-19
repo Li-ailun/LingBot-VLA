@@ -1,11 +1,638 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LingBot-VLA Monitor</title>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #374151;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --blue: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      display: inline-block;
+    }
+
+    .dot.ok {
+      background: var(--green);
+    }
+
+    .dot.warn {
+      background: var(--yellow);
+    }
+
+    main {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 1100px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    }
+
+    .card h2 {
+      margin: 0 0 12px 0;
+      font-size: 17px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .camera-box {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 160px;
+    }
+
+    .camera-title {
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .camera-box img {
+      width: 100%;
+      height: 240px;
+      object-fit: contain;
+      display: block;
+      background: #000;
+    }
+
+    .placeholder {
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      background: #000;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    input, select, textarea, button {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+
+    .btn-green {
+      background: #15803d;
+      border-color: #15803d;
+    }
+
+    .btn-yellow {
+      background: #a16207;
+      border-color: #a16207;
+    }
+
+    .btn-red {
+      background: #b91c1c;
+      border-color: #b91c1c;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric .value {
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .vector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    @media (max-width: 700px) {
+      .vector {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .vec-item {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .vec-label {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .vec-val {
+      margin-top: 4px;
+      color: var(--text);
+    }
+
+    pre {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      overflow: auto;
+      max-height: 260px;
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>LingBot-VLA Monitor</h1>
-  <p>TODO: camera preview, instruction input, server status, action plot, start/stop buttons.</p>
+  <header>
+    <div>
+      <h1>LingBot-VLA Monitor</h1>
+      <div class="small">Local robot monitor / policy server dashboard</div>
+    </div>
+
+    <div class="status-row">
+      <span id="wsDot" class="dot"></span>
+      <span id="wsStatus">Monitor disconnected</span>
+      <span>|</span>
+      <span id="lastUpdate">Last update: -</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Camera Preview</h2>
+
+      <div class="grid-3">
+        <div class="camera-box">
+          <div class="camera-title">
+            <span>camera_top</span>
+            <span id="cameraTopMeta">-</span>
+          </div>
+          <div id="camera_top_placeholder" class="placeholder">No image</div>
+          <img id="camera_top" style="display:none;" />
+        </div>
+
+        <div class="camera-box">
+          <div class="camera-title">
+            <span>camera_wrist_left</span>
+            <span id="cameraLeftMeta">-</span>
+          </div>
+          <div id="camera_wrist_left_placeholder" class="placeholder">No image</div>
+          <img id="camera_wrist_left" style="display:none;" />
+        </div>
+
+        <div class="camera-box">
+          <div class="camera-title">
+            <span>camera_wrist_right</span>
+            <span id="cameraRightMeta">-</span>
+          </div>
+          <div id="camera_wrist_right_placeholder" class="placeholder">No image</div>
+          <img id="camera_wrist_right" style="display:none;" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Control Panel</h2>
+
+      <div class="controls">
+        <label class="small">Monitor WebSocket URL</label>
+        <input id="monitorUrl" value="ws://127.0.0.1:9000/monitor" />
+
+        <div class="btn-row">
+          <button class="btn-blue" onclick="connectMonitor()">Connect</button>
+          <button onclick="disconnectMonitor()">Disconnect</button>
+        </div>
+
+        <label class="small">Instruction</label>
+        <textarea id="instruction">pick up the red cube and put it into the bowl</textarea>
+        <div class="small">Current instruction: <span id="currentInstruction">-</span></div>
+
+        <button class="btn-blue" onclick="sendInstruction()">Set Instruction</button>
+
+        <div class="btn-row">
+          <button class="btn-green" onclick="sendCommand('start_dry_run')">Start Dry-run</button>
+          <button class="btn-yellow" onclick="sendCommand('stop')">Stop</button>
+        </div>
+
+        <button class="btn-red" onclick="sendCommand('emergency_stop')">Emergency Stop</button>
+
+        <div class="small">
+          只做监控和指令人工控制入口，不参与实时动作闭环。
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Robot State</h2>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="label">Camera Mode</div>
+          <div id="cameraMode" class="value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Protocol</div>
+          <div id="protocol" class="value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">State Dim</div>
+          <div id="stateDim" class="value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Max Time Diff</div>
+          <div id="maxTimeDiff" class="value">-</div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:16px;">State Vector</h2>
+      <div id="stateVector" class="vector"></div>
+    </section>
+
+    <section class="card">
+      <h2>Policy / Action</h2>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="label">Policy Connected</div>
+          <div id="policyConnected" class="value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Action Shape</div>
+          <div id="actionShape" class="value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Server Infer</div>
+          <div id="serverInfer" class="value">-</div>
+        </div>
+
+        <div class="metric">
+          <div class="label">Round Trip</div>
+          <div id="roundTrip" class="value">-</div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:16px;">First Action</h2>
+      <div id="actionVector" class="vector"></div>
+    </section>
+
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>Event Log</h2>
+      <pre id="logBox"></pre>
+    </section>
+  </main>
+
+  <script>
+    let ws = null;
+
+    function log(msg) {
+      const box = document.getElementById("logBox");
+      const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      box.textContent = line + "\n" + box.textContent;
+    }
+
+    function setWsStatus(ok, text) {
+      const dot = document.getElementById("wsDot");
+      const status = document.getElementById("wsStatus");
+
+      dot.className = ok ? "dot ok" : "dot";
+      status.textContent = text;
+    }
+
+    function connectMonitor() {
+      const url = document.getElementById("monitorUrl").value.trim();
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        log("Monitor already connected.");
+        return;
+      }
+
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        setWsStatus(true, "Monitor connected");
+        log("Connected to " + url);
+      };
+
+      ws.onclose = () => {
+        setWsStatus(false, "Monitor disconnected");
+        log("Monitor disconnected.");
+      };
+
+      ws.onerror = () => {
+        setWsStatus(false, "Monitor error");
+        log("Monitor websocket error.");
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          handleTelemetry(msg);
+        } catch (e) {
+          log("Failed to parse message: " + e);
+        }
+      };
+    }
+
+    function disconnectMonitor() {
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      setWsStatus(false, "Monitor disconnected");
+    }
+
+    function sendJson(obj) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log("Monitor is not connected.");
+        return;
+      }
+      ws.send(JSON.stringify(obj));
+    }
+
+    function sendInstruction() {
+      const instruction = document.getElementById("instruction").value;
+      sendJson({
+        type: "set_instruction",
+        instruction: instruction
+      });
+      log("Sent instruction: " + instruction);
+    }
+
+    function sendCommand(command) {
+      sendJson({
+        type: command
+      });
+      log("Sent command: " + command);
+    }
+
+    function imageToSrc(value) {
+      if (!value) return null;
+
+      if (typeof value === "string") {
+        if (value.startsWith("data:image")) return value;
+        return "data:image/jpeg;base64," + value;
+      }
+
+      if (value.encoding === "jpeg_base64" && value.data) {
+        return "data:image/jpeg;base64," + value.data;
+      }
+
+      if (value.data) {
+        return "data:image/jpeg;base64," + value.data;
+      }
+
+      return null;
+    }
+
+    function setImage(name, value) {
+      const img = document.getElementById(name);
+      const ph = document.getElementById(name + "_placeholder");
+      const src = imageToSrc(value);
+
+      if (!src) return;
+
+      img.src = src;
+      img.style.display = "block";
+      ph.style.display = "none";
+    }
+
+    function updateVector(containerId, values, labels) {
+      const div = document.getElementById(containerId);
+      div.innerHTML = "";
+
+      if (!Array.isArray(values)) {
+        div.textContent = "-";
+        return;
+      }
+
+      values.forEach((v, i) => {
+        const item = document.createElement("div");
+        item.className = "vec-item";
+
+        const label = labels && labels[i] ? labels[i] : String(i);
+        const value = Number(v);
+
+        item.innerHTML = `
+          <div class="vec-label">${label}</div>
+          <div class="vec-val">${Number.isFinite(value) ? value.toFixed(4) : v}</div>
+        `;
+
+        div.appendChild(item);
+      });
+    }
+
+    function actionLabels() {
+      return [
+        "L1 Δ", "L2 Δ", "L3 Δ", "L4 Δ", "L5 Δ", "L6 Δ", "L7 Δ", "LG abs",
+        "R1 Δ", "R2 Δ", "R3 Δ", "R4 Δ", "R5 Δ", "R6 Δ", "R7 Δ", "RG abs"
+      ];
+    }
+
+    function stateLabels() {
+      return [
+        "L1", "L2", "L3", "L4", "L5", "L6", "L7", "LG",
+        "R1", "R2", "R3", "R4", "R5", "R6", "R7", "RG"
+      ];
+    }
+
+    function handleTelemetry(msg) {
+      document.getElementById("lastUpdate").textContent =
+        "Last update: " + new Date().toLocaleTimeString();
+
+      if (msg.type && msg.type !== "telemetry") {
+        log("Received message type: " + msg.type);
+      }
+
+      if (msg.images) {
+        setImage("camera_top", msg.images.camera_top);
+        setImage("camera_wrist_left", msg.images.camera_wrist_left);
+        setImage("camera_wrist_right", msg.images.camera_wrist_right);
+      }
+
+      if (msg.image_shapes) {
+        document.getElementById("cameraTopMeta").textContent =
+          JSON.stringify(msg.image_shapes.camera_top || "-");
+        document.getElementById("cameraLeftMeta").textContent =
+          JSON.stringify(msg.image_shapes.camera_wrist_left || "-");
+        document.getElementById("cameraRightMeta").textContent =
+          JSON.stringify(msg.image_shapes.camera_wrist_right || "-");
+      }
+
+      if (typeof msg.instruction === "string") {
+        document.getElementById("currentInstruction").textContent = msg.instruction || "-";
+      }
+
+      document.getElementById("cameraMode").textContent = msg.camera_mode || "-";
+      document.getElementById("protocol").textContent = msg.protocol || "-";
+      document.getElementById("policyConnected").textContent =
+        msg.policy_connected === true ? "yes" :
+        msg.policy_connected === false ? "no" : "-";
+
+      if (Array.isArray(msg.state)) {
+        document.getElementById("stateDim").textContent = msg.state.length;
+        updateVector("stateVector", msg.state, stateLabels());
+      }
+
+      if (typeof msg.max_state_time_diff === "number") {
+        document.getElementById("maxTimeDiff").textContent =
+          (msg.max_state_time_diff * 1000).toFixed(1) + " ms";
+      }
+
+      if (Array.isArray(msg.actions)) {
+        const t = msg.actions.length;
+        const d = Array.isArray(msg.actions[0]) ? msg.actions[0].length : 0;
+        document.getElementById("actionShape").textContent = `[${t}, ${d}]`;
+        updateVector("actionVector", msg.actions[0], actionLabels());
+      }
+
+      if (msg.server_timing) {
+        if (typeof msg.server_timing.infer_ms === "number") {
+          document.getElementById("serverInfer").textContent =
+            msg.server_timing.infer_ms.toFixed(1) + " ms";
+        }
+
+        if (typeof msg.server_timing.roundtrip_ms === "number") {
+          document.getElementById("roundTrip").textContent =
+            msg.server_timing.roundtrip_ms.toFixed(1) + " ms";
+        }
+      }
+    }
+
+    log("Page loaded. Waiting for monitor websocket.");
+  </script>
 </body>
 </html>
