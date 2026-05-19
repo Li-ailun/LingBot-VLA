@@ -32,3 +32,10 @@ rsync -avP --delete -e "ssh -p 2122" \
 ~/LingBotVLA/lingbotvla_deploy/
 
 保持一致。
+
+
+
+
+
+eren@eren-Legion-Y9000P-IRX9:~/LingBotVLA/lingbotvla_deploy$ python3 local_node/ros2_node.py   --send   --protocol official   --server-url ws://127.0.0.1:8001   --monitor   --time-source receive_time 
+  --print-every 20

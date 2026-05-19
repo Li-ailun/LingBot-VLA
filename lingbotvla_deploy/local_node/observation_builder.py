@@ -233,6 +233,38 @@ class ObservationBuilder:
         self.last_reference_time = reference_time
         self.frame_count += 1
 
+
+        # Unified timing report for ONLY currently used VLA input topics:
+        #   images: camera_top / camera_wrist_left / camera_wrist_right
+        #   states: left_arm / right_arm / left_gripper / right_gripper
+        # This intentionally ignores unused topics such as joint_states, torso,
+        # ee poses, tf, and command topics.
+        try:
+            metadata = obs.setdefault("metadata", {})
+            reference_time_for_report = float(
+                metadata.get("reference_time", obs.get("timestamp"))
+            )
+            image_timestamps_for_report = metadata.get("camera_timestamps", {})
+
+            if self.ros_bridge is not None and hasattr(self.ros_bridge, "get_used_topic_time_report"):
+                used_time_report = self.ros_bridge.get_used_topic_time_report(
+                    reference_time=reference_time_for_report,
+                    image_timestamps=image_timestamps_for_report,
+                )
+
+                metadata["used_time_report"] = used_time_report
+                metadata["max_used_time_diff"] = used_time_report.get("max_abs_diff_s", None)
+                metadata["max_used_time_diff_topic"] = used_time_report.get("max_abs_diff_topic", None)
+
+                # Keep old key for terminal / website compatibility.
+                if used_time_report.get("max_abs_diff_s", None) is not None:
+                    metadata["max_state_time_diff"] = used_time_report["max_abs_diff_s"]
+
+        except Exception as exc:
+            metadata = obs.setdefault("metadata", {})
+            metadata["used_time_report_error"] = str(exc)
+
+
         return obs
 
     def build_blocking(

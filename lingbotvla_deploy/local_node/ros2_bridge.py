@@ -817,6 +817,126 @@ class Ros2Bridge:
         except Exception as exc:
             logger.exception("ROS2 executor error: %s", exc)
 
+
+    def get_used_topic_time_report(self, reference_time, image_timestamps=None):
+        """
+        Report time alignment for ONLY the topics actually used by LingBot-VLA input.
+
+        Used topics:
+          images:
+            camera_top / camera_wrist_left / camera_wrist_right
+          states:
+            left_arm / right_arm / left_gripper / right_gripper
+
+        Not included:
+          joint_states / torso / ee_pose / tf / commands
+
+        The timestamp used here is the same message_time used by the bridge:
+          - receive_time when sync.time_source == receive_time
+          - header.stamp when sync.time_source == header_stamp
+        """
+        reference_time = float(reference_time)
+        image_timestamps = image_timestamps or {}
+
+        report = {
+            "reference_time": reference_time,
+            "time_source": "receive_time" if getattr(self, "use_recv_time", True) else "header_stamp",
+            "used_topics": {},
+            "missing_topics": [],
+            "max_abs_diff_s": None,
+            "max_abs_diff_topic": None,
+        }
+
+        def add_item(name, kind, timestamp, topic=None):
+            if timestamp is None:
+                report["missing_topics"].append(name)
+                return
+
+            timestamp = float(timestamp)
+            dt = timestamp - reference_time
+
+            report["used_topics"][name] = {
+                "kind": kind,
+                "topic": topic or name,
+                "timestamp": timestamp,
+                "dt_s": dt,
+                "abs_dt_s": abs(dt),
+                "dt_ms": dt * 1000.0,
+                "abs_dt_ms": abs(dt) * 1000.0,
+            }
+
+        # Images used by VLA.
+        ros_image_topics = getattr(self, "ros_image_topics", {})
+        for cam_name in ("camera_top", "camera_wrist_left", "camera_wrist_right"):
+            topic = None
+            try:
+                topic_cfg = ros_image_topics.get(cam_name, None)
+                if isinstance(topic_cfg, dict):
+                    topic = topic_cfg.get("topic", None)
+                elif hasattr(topic_cfg, "topic"):
+                    topic = topic_cfg.topic
+            except Exception:
+                topic = None
+
+            add_item(
+                name=cam_name,
+                kind="image",
+                timestamp=image_timestamps.get(cam_name, None),
+                topic=topic,
+            )
+
+        # State topics actually used to build 16D qpos.
+        state_buffers = getattr(self, "state_buffers", None)
+        if state_buffers is None:
+            state_buffers = getattr(self, "buffers", {})
+
+        state_topics = getattr(self, "state_topics", {})
+
+        for state_name in ("left_arm", "right_arm", "left_gripper", "right_gripper"):
+            item = None
+            buf = state_buffers.get(state_name, None) if isinstance(state_buffers, dict) else None
+
+            if buf is not None:
+                try:
+                    if hasattr(buf, "nearest"):
+                        item = buf.nearest(reference_time)
+                    elif hasattr(buf, "get_nearest"):
+                        item = buf.get_nearest(reference_time)
+                except Exception:
+                    item = None
+
+            timestamp = None
+            if isinstance(item, dict):
+                timestamp = item.get("message_time", item.get("timestamp", None))
+
+            topic = None
+            try:
+                topic_cfg = state_topics.get(state_name, None)
+                if isinstance(topic_cfg, dict):
+                    topic = topic_cfg.get("topic", None)
+                elif hasattr(topic_cfg, "topic"):
+                    topic = topic_cfg.topic
+            except Exception:
+                topic = None
+
+            add_item(
+                name=state_name,
+                kind="state",
+                timestamp=timestamp,
+                topic=topic,
+            )
+
+        if report["used_topics"]:
+            max_name, max_item = max(
+                report["used_topics"].items(),
+                key=lambda kv: kv[1]["abs_dt_s"],
+            )
+            report["max_abs_diff_s"] = float(max_item["abs_dt_s"])
+            report["max_abs_diff_topic"] = max_name
+
+        return report
+
+
     def destroy(self) -> None:
         try:
             self.executor.shutdown()

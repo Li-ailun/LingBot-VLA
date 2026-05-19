@@ -607,9 +607,17 @@
         updateVector("stateVector", msg.state, stateLabels());
       }
 
-      if (typeof msg.max_state_time_diff === "number") {
+      const unifiedDiff =
+        (typeof msg.max_used_time_diff === "number")
+          ? msg.max_used_time_diff
+          : msg.max_state_time_diff;
+
+      if (typeof unifiedDiff === "number") {
+        const topic = msg.max_used_time_diff_topic
+          ? " / " + msg.max_used_time_diff_topic
+          : "";
         document.getElementById("maxTimeDiff").textContent =
-          (msg.max_state_time_diff * 1000).toFixed(1) + " ms";
+          (unifiedDiff * 1000).toFixed(1) + " ms" + topic;
       }
 
       if (Array.isArray(msg.actions)) {

@@ -169,6 +169,15 @@ def build_telemetry_from_observation(
         if "max_state_time_diff" in metadata:
             telemetry["max_state_time_diff"] = float(metadata["max_state_time_diff"])
 
+        if "max_used_time_diff" in metadata and metadata["max_used_time_diff"] is not None:
+            telemetry["max_used_time_diff"] = float(metadata["max_used_time_diff"])
+
+        if "max_used_time_diff_topic" in metadata:
+            telemetry["max_used_time_diff_topic"] = metadata["max_used_time_diff_topic"]
+
+        if "used_time_report" in metadata:
+            telemetry["used_time_report"] = metadata["used_time_report"]
+
         images = {}
         for name, img in obs.get("images", {}).items():
             try:

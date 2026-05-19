@@ -103,7 +103,7 @@ sync:
 
   # receive_time = 本地运行 ros2_node.py / ros2_bridge.py 的这台机器收到 ROS 消息时的时间
   # header.stamp = 这个 ROS 消息发布者写进 msg.header.stamp 的时间
-  time_source: "receive_time"     # 可选: "receive_time" / "header_stamp"
+  time_source: "header_stamp"     # 可选: "receive_time" / "header_stamp"
 
   # 用哪个相机作为 observation 的参考时间。
   reference_camera: "camera_top"
