@@ -338,13 +338,11 @@ def parse_args():
 
     parser.add_argument("--config", type=str, default=str(default_config_path()))
     parser.add_argument("--server-url", type=str, default="ws://127.0.0.1:8000/ws")
+    parser.add_argument("--instruction", default="pick up the target object")
+    parser.add_argument("--robot-name", type=str, default="galaxea_r1pro_3view", help="Robot config name on server, without .yaml")
 
-    parser.add_argument(
-        "--protocol",
-        type=str,
-        default="json",
-        choices=["absolute_qpos"],
-    )
+    parser.add_argument("--protocol", choices=["official", "json"], default="official", help="Policy server protocol.")
+    parser.add_argument("--action-type", choices=["absolute_qpos"], default="absolute_qpos", help="Action interpretation type.")
 
     parser.add_argument("--max-joint-delta", type=float, default=None)
     parser.add_argument("--max-gripper-delta", type=float, default=None)
@@ -364,6 +362,7 @@ def parse_args():
     parser.add_argument("--max-state-time-diff", type=float, default=None)
 
     parser.add_argument("--jpeg-quality", type=int, default=80)
+    parser.add_argument("--execute", action="store_true", help="Actually publish robot control commands. Without this, dry-run only.")
     parser.add_argument("--max-steps", type=int, default=0)
     parser.add_argument("--print-every", type=int, default=1)
     parser.add_argument("--stop-on-error", action="store_true")
@@ -381,7 +380,56 @@ def main():
 
     yaml_cfg = load_yaml_config(args.config)
     camera_mode = get_camera_mode(yaml_cfg)
+    # Backward-compatible defaults after simplifying CLI.
+    # build_runtime_config still expects these attributes.
+    _default_args = {
+        "hardware": "R1_PRO",
+        "state_dim": 16,
+        "action_dim": 16,
+        "dof_of_arm": 7,
+        "control_frequency": 15.0,
+        "action_steps": 5,
+        "camera_mode": "ros",
+        "send": True,
+        "execute": False,
+        "action_type": "absolute_qpos",
+    }
+    for _k, _v in _default_args.items():
+        if not hasattr(args, _k):
+            setattr(args, _k, _v)
+
+    # Compatibility defaults for old runtime_config fields after CLI simplification.
+    _compat_defaults = {
+        "hardware": "R1_PRO",
+        "robot_name": "r1pro",
+        "instruction": "pick up the target object",
+        "state_dim": 16,
+        "action_dim": 16,
+        "dof_of_arm": 7,
+        "control_frequency": 15.0,
+        "action_steps": 5,
+        "camera_mode": "ros",
+        "send": True,
+        "execute": False,
+        "action_type": "absolute_qpos",
+    }
+    for _k, _v in _compat_defaults.items():
+        if not hasattr(args, _k):
+            setattr(args, _k, _v)
+
     runtime_cfg = build_runtime_config(args, yaml_cfg)
+    # execute publish patch
+    if getattr(args, "execute", False):
+        runtime_cfg.setdefault("robot", {})
+        runtime_cfg["robot"]["enable_publish"] = [
+            "left_arm",
+            "right_arm",
+            "left_gripper",
+            "right_gripper",
+        ]
+    else:
+        runtime_cfg.setdefault("robot", {})
+        runtime_cfg["robot"]["enable_publish"] = []
 
     robot_cfg = runtime_cfg["robot"]
     safety_cfg = runtime_cfg["safety"]
@@ -478,6 +526,9 @@ def main():
                     dof_of_arm=int(robot_cfg["dof_of_arm"]),
                     return_action_type=robot_cfg.get("action_type", "absolute_qpos"),
                 )
+                logger.info("Sending official reset with robot_name=%s", args.robot_name)
+                reset_result = client.reset(args.robot_name)
+                logger.info("Official reset result: %s", reset_result)
             else:
                 client = PolicyClient(
                     server_url=args.server_url,
@@ -513,8 +564,11 @@ def main():
             logger.info("Policy server URL: %s", args.server_url)
 
         step = 0
+        # Compatibility default after CLI simplification.
+        # control_frequency=15Hz, action_steps=5 => policy request about 3Hz.
+        if not hasattr(args, "policy_hz"):
+            args.policy_hz = 3.0
         loop_dt = 1.0 / max(args.policy_hz, 1e-6)
-
         while True:
             tic = time.time()
 

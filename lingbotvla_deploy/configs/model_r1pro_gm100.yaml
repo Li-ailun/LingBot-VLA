@@ -1,0 +1,76 @@
+# LingBot-VLA / GM-100 / Galaxea R1Pro model-side adapter config.
+# This file describes how local ROS observation maps to official GM-100 keys.
+
+model:
+  # Official repo real-robot deployment uses use_length=25.
+  # For first dry-run you may reduce to 5 to lower latency.
+  use_length: 25
+
+  # Fill these on the server.
+  model_path: "/path/to/lingbot-vla-4b-or-posttrain-hf_ckpt"
+  qwen25_path: "/path/to/Qwen2.5-VL-3B-Instruct"
+
+  # Official code can use --num_denoising_step 5 for speed.
+  num_denoising_step: 5
+
+  # We currently use the no-depth model.
+  use_depth: false
+
+robot:
+  robot_type: "galaxea_r1pro"
+  state_dim: 16
+  action_dim: 16
+  dof_of_arm: 7
+  action_type: "absolute_qpos"
+  fps: 15
+
+  # Local vector layout:
+  # [left_arm_7, left_gripper, right_arm_7, right_gripper]
+  layout:
+    left_arm: [0, 7]
+    left_gripper: 7
+    right_arm: [8, 15]
+    right_gripper: 15
+
+images:
+  # Local monitor / ROS names -> official GM-100 names.
+  use_three_views: true
+  duplicate_head_to_head_right: false
+
+  mapping:
+    camera_top: "observation.images.head_rgb"
+    camera_wrist_left: "observation.images.left_wrist_rgb"
+    camera_wrist_right: "observation.images.right_wrist_rgb"
+
+  optional_mapping:
+    camera_top_duplicate: "observation.images.head_right_rgb"
+
+states:
+  mapping:
+    left_arm: "observation.state.left_arm"
+    left_gripper: "observation.state.left_gripper"
+    right_arm: "observation.state.right_arm"
+    right_gripper: "observation.state.right_gripper"
+
+actions:
+  # Official R1Pro action keys from GM-100.
+  # These are absolute targets, not deltas.
+  mapping:
+    left_arm: "action.left_arm"
+    left_gripper: "action.left_gripper"
+    right_arm: "action.right_arm"
+    right_gripper: "action.right_gripper"
+
+  vector_layout:
+    left_arm: [0, 7]
+    left_gripper: 7
+    right_arm: [8, 15]
+    right_gripper: 15
+
+safety:
+  gripper_lower: 0.0
+  gripper_upper: 100.0
+  # Model action is absolute. Executor may still limit per-step motion
+  # before publishing an absolute safe target.
+  max_joint_delta_per_step: 0.02
+  max_gripper_delta_per_step: 5.0

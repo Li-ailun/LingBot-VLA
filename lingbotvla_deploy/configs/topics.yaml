@@ -44,7 +44,7 @@ cameras:
       fps: 15
 
     ros:
-      topic: "/camera/camera_wrist_left/color/image_rect_raw/compressed"
+      topic: "/hdas/camera_wrist_left/color/image_raw/compressed"
       msg_type: "CompressedImage"
       resize_to: [640, 480]
 
@@ -61,7 +61,7 @@ cameras:
       fps: 15
 
     ros:
-      topic: "/camera/camera_wrist_right/color/image_rect_raw/compressed"
+      topic: "/hdas/camera_wrist_right/color/image_raw/compressed"
       msg_type: "CompressedImage"
       resize_to: [640, 480]
 

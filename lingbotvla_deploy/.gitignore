@@ -1,0 +1,56 @@
+
+# large/local artifacts
+models/
+checkpoints/
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.onnx
+
+# runtime/cache
+__pycache__/
+*.pyc
+.triton/
+.cache/
+local_libcuda/
+photos/
+logs/
+*.log
+
+# backups
+*.bak
+*.bak_*
+*_bak_*
+
+# model weights / datasets
+models/
+checkpoints/
+gm100*/
+*_sample/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.tar
+*.tar.gz
+*.parquet
+videos/
+episodes/
+data/
+datasets/
+
+# caches / runtime
+__pycache__/
+*.pyc
+.cache/
+.triton/
+local_libcuda/
+logs/
+*.log
+photos/
+
+# backups
+*.bak
+*.bak_*
+*_bak_*

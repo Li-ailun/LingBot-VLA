@@ -1,0 +1,63 @@
+# Galaxea R1Pro / GM-100 / 3-view RGB config
+#
+# Raw input:
+#   observation.state: [16]
+#     [left_arm_7, left_gripper, right_arm_7, right_gripper]
+#
+#   observation.images.head_rgb
+#   observation.images.left_wrist_rgb
+#   observation.images.right_wrist_rgb
+#
+# Raw output:
+#   action: [16]
+#     [left_arm_abs_7, left_gripper_abs, right_arm_abs_7, right_gripper_abs]
+
+states:
+  - observation.state.arm.position:
+      origin_keys:
+        - observation.state:
+            start: 0
+            end: 7
+        - observation.state:
+            start: 8
+            end: 15
+
+  - observation.state.effector.position:
+      origin_keys:
+        - observation.state:
+            start: 7
+            end: 8
+        - observation.state:
+            start: 15
+            end: 16
+
+actions:
+  - action.arm.position:
+      origin_keys:
+        - action:
+            start: 0
+            end: 7
+        - action:
+            start: 8
+            end: 15
+      subtract_state: false
+
+  - action.effector.position:
+      origin_keys:
+        - action:
+            start: 7
+            end: 8
+        - action:
+            start: 15
+            end: 16
+      subtract_state: false
+
+images:
+  - observation.images.camera_top:
+      origin_keys: observation.images.head_rgb
+
+  - observation.images.camera_wrist_left:
+      origin_keys: observation.images.left_wrist_rgb
+
+  - observation.images.camera_wrist_right:
+      origin_keys: observation.images.right_wrist_rgb

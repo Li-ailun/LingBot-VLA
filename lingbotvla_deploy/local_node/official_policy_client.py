@@ -171,6 +171,20 @@ class OfficialPolicyClient:
 
         official_obs = self.build_official_observation(observation)
 
+        # Alias local deployment camera names to official/GM100 image feature names.
+        # Server expects:
+        #   observation.images.head_rgb
+        #   observation.images.left_wrist_rgb
+        #   observation.images.right_wrist_rgb
+        image_aliases = {
+            "observation.images.camera_top": "observation.images.head_rgb",
+            "observation.images.camera_wrist_left": "observation.images.left_wrist_rgb",
+            "observation.images.camera_wrist_right": "observation.images.right_wrist_rgb",
+        }
+        for src_key, dst_key in image_aliases.items():
+            if src_key in official_obs and dst_key not in official_obs:
+                official_obs[dst_key] = official_obs[src_key]
+
         self.ws.send(self.packer.pack(official_obs))
         response_raw = self.ws.recv()
 
