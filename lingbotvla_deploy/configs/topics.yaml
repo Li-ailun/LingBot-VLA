@@ -121,7 +121,7 @@ robot:
   # LingBot-VLA 推荐第一版：
   # arm 输出是关节增量
   # gripper 输出是绝对夹爪目标值
-  action_type: "arm_delta_gripper_absolute"
+  action_type: "absolute_qpos"
 
   control_frequency: 15.0
   action_steps: 5

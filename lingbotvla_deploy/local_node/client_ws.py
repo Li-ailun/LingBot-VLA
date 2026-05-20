@@ -40,7 +40,7 @@ Expected incoming message:
 {
     "type": "action_chunk",
     "request_id": "...",
-    "action_type": "arm_delta_gripper_absolute",
+    "action_type": "absolute_qpos",
     "actions": [
         [a0, a1, ..., a15],
         ...
@@ -173,7 +173,7 @@ def decode_action_response(response: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "request_id": response.get("request_id", None),
-        "action_type": response.get("action_type", "arm_delta_gripper_absolute"),
+        "action_type": response.get("action_type", "absolute_qpos"),
         "actions": action_chunk,
         "raw_response": response,
     }

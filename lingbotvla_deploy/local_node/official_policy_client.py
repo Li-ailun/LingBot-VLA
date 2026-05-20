@@ -21,14 +21,14 @@ def _as_action_chunk_response(
     response: Dict[str, Any],
     current_state: np.ndarray,
     dof_of_arm: int = 7,
-    return_action_type: str = "arm_delta_gripper_absolute",
+    return_action_type: str = "absolute_qpos",
 ) -> Dict[str, Any]:
     """
     Normalize official LingBot-VLA response to our local format:
 
     {
         "actions": np.ndarray[T, 16],
-        "action_type": "arm_delta_gripper_absolute",
+        "action_type": "absolute_qpos",
         "raw_response": response
     }
 
@@ -80,14 +80,10 @@ def _as_action_chunk_response(
         ]
         absolute[:, -1] = eff[:t, 1]
 
-        if return_action_type == "absolute_qpos":
-            actions = absolute
-        else:
-            actions = absolute.copy()
-            actions[:, 0:dof_of_arm] -= current_state[0:dof_of_arm]
-            right_slice = slice(dof_of_arm + 1, dof_of_arm + 1 + dof_of_arm)
-            actions[:, right_slice] -= current_state[right_slice]
-            # gripper keeps absolute value
+        # GM-100 GalaxeaR1Pro actions are absolute targets.
+        # Keep the full 16D vector as absolute_qpos:
+        # [left_arm_abs_7, left_gripper_abs, right_arm_abs_7, right_gripper_abs]
+        actions = absolute
 
     if actions.ndim == 1:
         actions = actions[None, :]
@@ -121,7 +117,7 @@ class OfficialPolicyClient:
         self,
         server_url: str = "ws://127.0.0.1:8000",
         dof_of_arm: int = 7,
-        return_action_type: str = "arm_delta_gripper_absolute",
+        return_action_type: str = "absolute_qpos",
         api_key: Optional[str] = None,
     ):
         self.server_url = server_url.rstrip("/")

@@ -26,7 +26,7 @@ Response:
 {
     "type": "action_chunk",
     "request_id": "...",
-    "action_type": "arm_delta_gripper_absolute",
+    "action_type": "absolute_qpos",
     "actions": [[...], ...],
     "server_timing": {...}
 }
@@ -141,7 +141,7 @@ class LingBotPolicyServer:
                             "request_id": request_id,
                             "action_type": result.get(
                                 "action_type",
-                                "arm_delta_gripper_absolute",
+                                "absolute_qpos",
                             ),
                             "actions": result["actions"],
                             "server_timing": {
@@ -236,11 +236,10 @@ def parse_args():
     parser.add_argument(
         "--return-action-type",
         type=str,
-        default="arm_delta_gripper_absolute",
-        choices=["arm_delta_gripper_absolute", "absolute_qpos"],
+        default="absolute_qpos",
+        choices=["absolute_qpos"],
         help=(
-            "arm_delta_gripper_absolute: server converts official absolute arm target "
-            "to arm delta, gripper remains absolute. This matches local ActionExecutor."
+            "absolute_qpos: server returns absolute joint/gripper targets. This matches GM-100 R1Pro."
         ),
     )
 

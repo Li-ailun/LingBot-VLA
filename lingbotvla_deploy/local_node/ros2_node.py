@@ -194,7 +194,7 @@ def build_runtime_config(args, yaml_cfg: Dict[str, Any]) -> Dict[str, Any]:
             "dof_of_arm": dof,
             "action_type": override_if_not_none(
                 args.action_type,
-                robot_yaml.get("action_type", "arm_delta_gripper_absolute"),
+                robot_yaml.get("action_type", "absolute_qpos"),
             ),
             "control_frequency": float(
                 override_if_not_none(
@@ -257,8 +257,6 @@ def build_runtime_config(args, yaml_cfg: Dict[str, Any]) -> Dict[str, Any]:
         },
     }
 
-    if runtime["robot"]["action_type"] == "delta_qpos":
-        runtime["robot"]["action_type"] = "arm_delta_gripper_absolute"
 
     return runtime
 
@@ -345,34 +343,7 @@ def parse_args():
         "--protocol",
         type=str,
         default="json",
-        choices=["json", "official"],
-        help="json: current JSON/base64 protocol. official: LingBot official msgpack protocol.",
-    )
-    parser.add_argument("--instruction", type=str, default="do the task")
-    parser.add_argument("--robot-name", type=str, default="my_robot")
-
-    parser.add_argument("--hardware", type=str, default=None, choices=["R1_PRO", "R1_LITE"])
-    parser.add_argument("--state-dim", type=int, default=None)
-    parser.add_argument("--action-dim", type=int, default=None)
-    parser.add_argument("--dof-of-arm", type=int, default=None)
-
-    parser.add_argument("--send", action="store_true")
-    parser.add_argument("--execute", action="store_true")
-    parser.add_argument("--policy-hz", type=float, default=3.0)
-
-    parser.add_argument("--control-frequency", type=float, default=None)
-    parser.add_argument("--action-steps", type=int, default=None)
-
-    parser.add_argument(
-        "--action-type",
-        type=str,
-        default=None,
-        choices=[
-            "arm_delta_gripper_absolute",
-            "absolute_qpos",
-            "all_delta_qpos",
-            "delta_qpos",
-        ],
+        choices=["absolute_qpos"],
     )
 
     parser.add_argument("--max-joint-delta", type=float, default=None)
@@ -505,7 +476,7 @@ def main():
                 client = OfficialPolicyClient(
                     server_url=args.server_url,
                     dof_of_arm=int(robot_cfg["dof_of_arm"]),
-                    return_action_type=robot_cfg.get("action_type", "arm_delta_gripper_absolute"),
+                    return_action_type=robot_cfg.get("action_type", "absolute_qpos"),
                 )
             else:
                 client = PolicyClient(
@@ -622,8 +593,6 @@ def main():
                 if returned_action_type is not None:
                     executor.action_type = returned_action_type
 
-                    if executor.action_type == "delta_qpos":
-                        executor.action_type = "arm_delta_gripper_absolute"
 
                 if args.execute:
                     executor.execute_action_chunk(

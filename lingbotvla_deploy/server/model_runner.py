@@ -22,7 +22,7 @@ Output to local client:
 {
     "type": "action_chunk",
     "request_id": "...",
-    "action_type": "arm_delta_gripper_absolute",
+    "action_type": "absolute_qpos",
     "actions": [[16 floats], ...]
 }
 """
@@ -66,7 +66,7 @@ def vector_action_from_official_output(
     official_output: Dict[str, Any],
     current_state: np.ndarray,
     dof_of_arm: int = 7,
-    return_action_type: str = "arm_delta_gripper_absolute",
+    return_action_type: str = "absolute_qpos",
 ) -> np.ndarray:
     """
     Convert official LingBot output dict to [T, 16].
@@ -78,7 +78,7 @@ def vector_action_from_official_output(
 
     Because official FeatureTransform.unapply() adds state back when subtract_state=True,
     the returned arm action is usually absolute qpos. For our local executor we return:
-        arm_delta_gripper_absolute
+        absolute_qpos
     by converting:
         arm_delta = arm_absolute - current_arm
         gripper = gripper_absolute
@@ -139,28 +139,10 @@ def vector_action_from_official_output(
         absolute[:, dof_of_arm + 1 : dof_of_arm + 1 + dof_of_arm] = arm[:, dof_of_arm : dof_of_arm * 2]
         absolute[:, -1] = eff[:, 1]
 
-    if return_action_type == "absolute_qpos":
-        return absolute.astype(np.float32)
-
-    if return_action_type != "arm_delta_gripper_absolute":
-        raise ValueError(f"Unsupported return_action_type: {return_action_type}")
-
-    # Convert absolute arm targets to arm deltas; keep gripper absolute.
-    result = absolute.copy()
-
-    left_arm_slice = slice(0, dof_of_arm)
-    left_gripper_idx = dof_of_arm
-    right_arm_slice = slice(dof_of_arm + 1, dof_of_arm + 1 + dof_of_arm)
-    right_gripper_idx = dof_of_arm + 1 + dof_of_arm
-
-    result[:, left_arm_slice] = absolute[:, left_arm_slice] - current_state[left_arm_slice]
-    result[:, right_arm_slice] = absolute[:, right_arm_slice] - current_state[right_arm_slice]
-
-    # gripper remains absolute
-    result[:, left_gripper_idx] = absolute[:, left_gripper_idx]
-    result[:, right_gripper_idx] = absolute[:, right_gripper_idx]
-
-    return result.astype(np.float32)
+    # GM-100 GalaxeaR1Pro actions are absolute targets.
+    # Always return absolute_qpos:
+    # [left_arm_abs_7, left_gripper_abs, right_arm_abs_7, right_gripper_abs]
+    return absolute.astype(np.float32)
 
 
 class DummyModelRunner:
@@ -174,7 +156,7 @@ class DummyModelRunner:
         action_dim: int = 16,
         dof_of_arm: int = 7,
         use_length: int = 5,
-        action_type: str = "arm_delta_gripper_absolute",
+        action_type: str = "absolute_qpos",
     ):
         self.action_dim = int(action_dim)
         self.dof_of_arm = int(dof_of_arm)
@@ -184,16 +166,9 @@ class DummyModelRunner:
     def infer(self, request: Dict[str, Any]) -> Dict[str, Any]:
         state = np.asarray(request["state"], dtype=np.float32).reshape(-1)
 
-        actions = np.zeros((self.use_length, self.action_dim), dtype=np.float32)
+        actions = np.repeat(state[None, :], self.use_length, axis=0).astype(np.float32)
 
-        if self.action_type == "arm_delta_gripper_absolute":
-            left_g = self.dof_of_arm
-            right_g = self.dof_of_arm + 1 + self.dof_of_arm
-
-            actions[:, left_g] = float(state[left_g])
-            actions[:, right_g] = float(state[right_g])
-
-        elif self.action_type == "absolute_qpos":
+        if self.action_type == "absolute_qpos":
             actions[:] = state[None, :]
 
         else:
@@ -228,7 +203,7 @@ class LingBotVLAModelRunner:
         use_bf16: bool = True,
         use_fp32: bool = False,
         dof_of_arm: int = 7,
-        return_action_type: str = "arm_delta_gripper_absolute",
+        return_action_type: str = "absolute_qpos",
     ):
         self.repo_dir = Path(repo_dir).expanduser().resolve()
         self.model_path = Path(model_path).expanduser().resolve()

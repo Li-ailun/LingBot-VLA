@@ -18,7 +18,7 @@ class DummyOfficialPolicy:
     def infer(self, obs):
         state = np.asarray(obs["observation.state"], dtype=np.float32).reshape(-1)
 
-        actions = np.zeros((self.use_length, self.action_dim), dtype=np.float32)
+        actions = np.repeat(state[None, :], self.use_length, axis=0).astype(np.float32)
 
         # local action format:
         # arm = delta, gripper = absolute
@@ -30,7 +30,7 @@ class DummyOfficialPolicy:
 
         return {
             "action": actions,
-            "action_type": "arm_delta_gripper_absolute",
+            "action_type": "absolute_qpos",
         }
 
 

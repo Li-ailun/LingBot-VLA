@@ -14,7 +14,7 @@ R1_PRO action/state layout, 16 dim:
     right_gripper_1,
 ]
 
-Default action_type = "arm_delta_gripper_absolute":
+Default action_type = "absolute_qpos":
 
 - arm action:
     target_arm = current_arm + predicted_arm_delta
@@ -50,7 +50,7 @@ class ActionExecutor:
     Local action executor.
 
     Recommended first version:
-        action_type = "arm_delta_gripper_absolute"
+        action_type = "absolute_qpos"
 
     Meaning:
         arm output is delta qpos
@@ -71,11 +71,13 @@ class ActionExecutor:
         safety_cfg = self.config.get("safety", {})
 
         # For compatibility:
-        # If config still says "delta_qpos", we interpret it as:
+        # If config still says "absolute_qpos", we interpret it as:
         # arm delta + gripper absolute.
-        self.action_type = robot_cfg.get("action_type", "arm_delta_gripper_absolute")
-        if self.action_type == "delta_qpos":
-            self.action_type = "arm_delta_gripper_absolute"
+        self.action_type = robot_cfg.get("action_type", "absolute_qpos")
+        if self.action_type != "absolute_qpos":
+            raise ValueError(
+                f"Only absolute_qpos is supported now. Got action_type={self.action_type}"
+            )
 
         self.control_frequency = float(robot_cfg.get("control_frequency", 15.0))
         self.action_steps = int(robot_cfg.get("action_steps", 5))
@@ -185,14 +187,14 @@ class ActionExecutor:
 
         Supported action_type:
 
-        1. "arm_delta_gripper_absolute"
+        1. "absolute_qpos"
            arm target = current arm + raw arm delta
            gripper target = raw gripper absolute
 
         2. "absolute_qpos"
            whole vector is absolute target
 
-        3. "all_delta_qpos"
+        3. "absolute_qpos"
            whole vector is delta, including gripper
         """
         current = np.asarray(current_state, dtype=np.float32).reshape(-1)
@@ -208,31 +210,14 @@ class ActionExecutor:
                 f"Invalid raw_action dim. Expected {self.expected_dim}, got {raw.shape[0]}"
             )
 
-        idx = self._indices()
+        if self.action_type != "absolute_qpos":
+            raise ValueError(
+                f"Only absolute_qpos is supported now. Got action_type={self.action_type}"
+            )
 
-        if self.action_type == "arm_delta_gripper_absolute":
-            target = current.copy()
-
-            # Arm: delta.
-            target[idx["left_arm"]] = current[idx["left_arm"]] + raw[idx["left_arm"]]
-            target[idx["right_arm"]] = current[idx["right_arm"]] + raw[idx["right_arm"]]
-
-            # Gripper: absolute.
-            target[idx["left_gripper"]] = raw[idx["left_gripper"]]
-            target[idx["right_gripper"]] = raw[idx["right_gripper"]]
-
-            return target.astype(np.float32)
-
-        if self.action_type == "absolute_qpos":
-            return raw.astype(np.float32)
-
-        if self.action_type == "all_delta_qpos":
-            return (current + raw).astype(np.float32)
-
-        raise ValueError(
-            f"Unknown action_type={self.action_type}. "
-            "Use 'arm_delta_gripper_absolute', 'absolute_qpos', or 'all_delta_qpos'."
-        )
+        # GM-100 GalaxeaR1Pro action format:
+        # [left_arm_abs_7, left_gripper_abs, right_arm_abs_7, right_gripper_abs]
+        return raw.astype(np.float32)
 
     def process_action_chunk(
         self,
@@ -518,7 +503,7 @@ def main():
         "robot": {
             "control_frequency": 15.0,
             "action_steps": 5,
-            "action_type": "arm_delta_gripper_absolute",
+            "action_type": "absolute_qpos",
             "state_dim": 16,
             "action_dim": 16,
             "dof_of_arm": 7,

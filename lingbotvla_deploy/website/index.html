@@ -346,7 +346,7 @@
         <button class="btn-red" onclick="sendCommand('emergency_stop')">Emergency Stop</button>
 
         <div class="small">
-          只做监控和指令人工控制入口，不参与实时动作闭环。
+          只做监控和指令人工控制入口；First Action 显示的是 absolute_qpos 绝对关节/夹爪目标。
         </div>
       </div>
     </section>
@@ -381,7 +381,7 @@
     </section>
 
     <section class="card">
-      <h2>Policy / Action</h2>
+      <h2>Policy / Absolute Action</h2>
 
       <div class="metrics">
         <div class="metric">
@@ -395,6 +395,11 @@
         </div>
 
         <div class="metric">
+          <div class="label">Action Type</div>
+          <div id="actionType" class="value">absolute_qpos</div>
+        </div>
+
+        <div class="metric">
           <div class="label">Server Infer</div>
           <div id="serverInfer" class="value">-</div>
         </div>
@@ -405,7 +410,7 @@
         </div>
       </div>
 
-      <h2 style="margin-top:16px;">First Action</h2>
+      <h2 style="margin-top:16px;">First Action Target</h2>
       <div id="actionVector" class="vector"></div>
     </section>
 
@@ -557,8 +562,8 @@
 
     function actionLabels() {
       return [
-        "L1 Δ", "L2 Δ", "L3 Δ", "L4 Δ", "L5 Δ", "L6 Δ", "L7 Δ", "LG abs",
-        "R1 Δ", "R2 Δ", "R3 Δ", "R4 Δ", "R5 Δ", "R6 Δ", "R7 Δ", "RG abs"
+        "L1 abs", "L2 abs", "L3 abs", "L4 abs", "L5 abs", "L6 abs", "L7 abs", "LG abs",
+        "R1 abs", "R2 abs", "R3 abs", "R4 abs", "R5 abs", "R6 abs", "R7 abs", "RG abs"
       ];
     }
 
@@ -618,6 +623,10 @@
           : "";
         document.getElementById("maxTimeDiff").textContent =
           (unifiedDiff * 1000).toFixed(1) + " ms" + topic;
+      }
+
+      if (typeof msg.action_type === "string") {
+        document.getElementById("actionType").textContent = msg.action_type;
       }
 
       if (Array.isArray(msg.actions)) {

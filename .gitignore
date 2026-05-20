@@ -1,48 +1,81 @@
-# Python
+# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 *.so
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 
-# Environments
+# Python envs
 .venv/
 venv/
 env/
 *.egg-info/
 
-# Logs / cache
+# Logs / temp
 logs/
 *.log
 .cache/
 .cache*/
 .DS_Store
+*.tmp
+*.bak
+*.swp
+*.swo
 
-# ROS / data
+# ROS / robot data
 bags/
 *.db3
 *.mcap
 *.bag
 *.bag.active
+*.sqlite3
 
-# Models / checkpoints / large files
-models/
+# Dataset / GM-100 / LeRobot data
+gm100*/
+gm100_r1pro_sample/
+**/gm100_r1pro_sample/
+**/extracted_BM*/
+**/videos/
+**/*.mp4
+**/*.parquet
+**/*.jsonl.tmp
+
+# Downloaded archives
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+
+# Models / checkpoints / weights
 checkpoints/
-*.safetensors
+models/
+weights/
 *.pt
 *.pth
 *.ckpt
+*.safetensors
 *.bin
 *.onnx
 
-# HuggingFace cache
-**/.cache/huggingface/
+# HuggingFace cache / downloads
+.hf/
+.huggingface/
+hf_cache/
+downloads/
 
-# Official cloned repo, do not vendor it
-lingbot-vla/
+# Large numpy/data files
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.pkl
+*.pickle
 
-# Temporary backup files
-*.bak
-*.tmp
+# IDE
+.vscode/
+.idea/

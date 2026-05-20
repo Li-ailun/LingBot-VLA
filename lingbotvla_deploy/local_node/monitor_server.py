@@ -607,7 +607,7 @@ def run_demo(args) -> None:
             }
 
             result = {
-                "action_type": "arm_delta_gripper_absolute",
+                "action_type": "absolute_qpos",
                 "server_timing": {
                     "infer_ms": 120.0 + 10.0 * np.sin(t),
                     "roundtrip_ms": 180.0 + 20.0 * np.cos(t),
