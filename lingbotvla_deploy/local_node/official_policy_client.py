@@ -131,6 +131,10 @@ class OfficialPolicyClient:
         logger.info("Connecting to official policy server: %s", self.server_url)
         self.ws = websockets.sync.client.connect(
             self.server_url,
+            ping_interval=None,
+            ping_timeout=None,
+            close_timeout=5,
+            open_timeout=120,
             compression=None,
             max_size=None,
             additional_headers=headers,
